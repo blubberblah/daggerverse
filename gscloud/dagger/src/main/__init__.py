@@ -11,9 +11,7 @@ from one of the SDKs.
 The first line in this comment block is a short description line and the
 rest is a long description with more detail on the module's purpose or usage,
 if appropriate. All modules should have a short description.
-"""
 
-"""
 tkn=****** dagger call kubeconfig-file --user-id=****** --user-token=env:tkn --cluster-uuid=***** contents
 
 
@@ -22,7 +20,6 @@ https://daggerverse.dev/mod/github.com/seungyeop-lee/daggerverse/scp@4ba108db839
 
 """
 
-
 from typing import Annotated
 import dagger
 from dagger import dag, field, function, object_type, Doc
@@ -30,6 +27,7 @@ from dagger import dag, field, function, object_type, Doc
 
 @object_type
 class Gscloud:
+    """Wrapper for Gscloud tool, see: https://github.com/gridscale/gscloud.\nFor now only 'gscloud save-kubeconfig' is implemented."""
     #@function
     #async def kubeconfig(self, user_id: str, user_token: dagger.Secret, cluster_uuid: str) -> str:
     #    file = await self.kubeconfig_file(user_id, user_token, cluster_uuid)
@@ -47,8 +45,9 @@ class Gscloud:
         user_token: Annotated[dagger.Secret, Doc("A reference to a secret value representing the Usertoken")],
         cluster_uuid: Annotated[str, Doc("UUID of cluster")],
     ) -> dagger.File:
+        """Generate a kubeconfig for a cluster"""
         cont = await self.gscloud_container()
-        file = await (
+        file = (
             cont
             .with_env_variable("GRIDSCALE_UUID", user_id)
             .with_env_variable("GRIDSCALE_TOKEN", await user_token.plaintext())
@@ -63,14 +62,14 @@ class Gscloud:
         return file
                 
     async def gscloud_container(self) -> dagger.Container:
-        cont = await (
+        build_ctr = (
             dag.container()
             #.from_("alpine:latest")
             .from_("cgr.dev/chainguard/wolfi-base")
             .with_exec(["apk", "add", "--no-cache", "curl", "jq", "unzip"])
         ) 
-        release_url = await(
-            cont.with_exec(["sh", "-c",
+        release_url = await (
+            build_ctr.with_exec(["sh", "-c",
                  "curl -sL https://api.github.com/repos/gridscale/gscloud/releases/latest "
                  "| jq -r '.assets[] "
                  f"| select(.name|match(\"gscloud_.*_linux_amd64.zip$\")) "
@@ -79,11 +78,17 @@ class Gscloud:
             ])
             .stdout()
         )
-        return await(
-            cont
+        file = (
+            build_ctr
             .with_exec(["sh", "-c",
                 f"curl -Ls --output /tmp/gscloud-latest.zip '{release_url}' "
                 "&& unzip -j /tmp/gscloud-latest.zip gscloud -d /usr/local/bin "
                 "&& chmod u+x /usr/local/bin/gscloud"
-            ])
+            ]).file("/usr/local/bin/gscloud")
+        )
+        return (
+            # make a new container containing only the gscloud binary
+            dag.container()
+            .from_("cgr.dev/chainguard/wolfi-base")
+            .with_file("/usr/local/bin/gscloud", file)
         )
