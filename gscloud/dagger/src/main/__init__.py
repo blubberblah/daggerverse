@@ -46,7 +46,7 @@ class Gscloud:
         cluster_uuid: Annotated[str, Doc("UUID of cluster")],
     ) -> dagger.File:
         """Generate a kubeconfig for a cluster"""
-        cont = await self.gscloud_container()
+        cont = await self.container()
         file = (
             cont
             .with_env_variable("GRIDSCALE_UUID", user_id)
@@ -61,7 +61,8 @@ class Gscloud:
         )
         return file
                 
-    async def gscloud_container(self) -> dagger.Container:
+    @function
+    async def container(self) -> dagger.Container:
         build_ctr = (
             dag.container()
             #.from_("alpine:latest")

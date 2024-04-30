@@ -2,5 +2,8 @@
   "name": "gscloud",
   "sdk": "python",
   "source": "dagger",
-  "engineVersion": "v0.11.1"
+  "exclude": [
+    "dagger/sdk"
+  ],
+  "engineVersion": "v0.11.2"
 }
