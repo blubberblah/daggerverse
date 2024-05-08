@@ -1,22 +1,5 @@
-"""A generated module for Gscloud functions
+"""Module wrapping the gscloud commandline tool.
 
-This module has been generated via dagger init and serves as a reference to
-basic module structure as you get started with Dagger.
-
-Two functions have been pre-created. You can modify, delete, or add to them,
-as needed. They demonstrate usage of arguments and return types using simple
-echo and grep commands. The functions can be called from the dagger CLI or
-from one of the SDKs.
-
-The first line in this comment block is a short description line and the
-rest is a long description with more detail on the module's purpose or usage,
-if appropriate. All modules should have a short description.
-
-tkn=****** dagger call kubeconfig-file --user-id=****** --user-token=env:tkn --cluster-uuid=***** contents
-
-
-https://archive.docs.dagger.io/0.9/205271/replace-dockerfile/
-https://daggerverse.dev/mod/github.com/seungyeop-lee/daggerverse/scp@4ba108db8397e7c2739ca89616a57100da858e07#Commander.fileToRemote
 
 """
 
@@ -39,13 +22,13 @@ class Gscloud:
     KUBECFG_PATH="/gs-cluster-kubeconfig.yaml"
 
     @function
-    async def kubeconfig_file(
+    async def kubeconfig(
         self,
         user_id: Annotated[str, Doc("Username")],
         user_token: Annotated[dagger.Secret, Doc("A reference to a secret value representing the Usertoken")],
         cluster_uuid: Annotated[str, Doc("UUID of cluster")],
     ) -> dagger.File:
-        """Generate a kubeconfig for a cluster"""
+        """Generate kubeconfig for a cluster"""
         cont = await self.container()
         file = (
             cont
