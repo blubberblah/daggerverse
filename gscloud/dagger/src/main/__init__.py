@@ -1,6 +1,5 @@
 """Module wrapping the gscloud commandline tool.
 
-
 """
 
 from typing import Annotated
@@ -28,7 +27,7 @@ class Gscloud:
         user_token: Annotated[dagger.Secret, Doc("A reference to a secret value representing the Usertoken")],
         cluster_uuid: Annotated[str, Doc("UUID of cluster")],
     ) -> dagger.File:
-        """Generate kubeconfig for a cluster"""
+        """Returns the generated kubeconfig file"""
         cont = await self.container()
         file = (
             cont
@@ -46,6 +45,7 @@ class Gscloud:
                 
     @function
     async def container(self) -> dagger.Container:
+        """Returns container with gscloud binary located at /usr/bin/gscloud"""
         build_ctr = (
             dag.container()
             #.from_("alpine:latest")
@@ -56,7 +56,7 @@ class Gscloud:
             build_ctr.with_exec(["sh", "-c",
                  "curl -sL https://api.github.com/repos/gridscale/gscloud/releases/latest "
                  "| jq -r '.assets[] "
-                 f"| select(.name|match(\"gscloud_.*_linux_amd64.zip$\")) "
+                 "| select(.name|match(\"gscloud_.*_linux_amd64.zip$\")) "
                  "| .browser_download_url' "
                  "| tr -d '\n'"
             ])
@@ -66,13 +66,13 @@ class Gscloud:
             build_ctr
             .with_exec(["sh", "-c",
                 f"curl -Ls --output /tmp/gscloud-latest.zip '{release_url}' "
-                "&& unzip -j /tmp/gscloud-latest.zip gscloud -d /usr/local/bin "
-                "&& chmod u+x /usr/local/bin/gscloud"
-            ]).file("/usr/local/bin/gscloud")
+                "&& unzip -j /tmp/gscloud-latest.zip gscloud -d /usr/bin "
+                "&& chmod u+x /usr/bin/gscloud"
+            ]).file("/usr/bin/gscloud")
         )
         return (
             # make a new container containing only the gscloud binary
             dag.container()
             .from_("cgr.dev/chainguard/wolfi-base")
-            .with_file("/usr/local/bin/gscloud", file)
+            .with_file("/usr/bin/gscloud", file)
         )
